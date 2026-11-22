@@ -42,6 +42,7 @@ a{color:var(--gold)}small{color:var(--muted)}footer{padding:24px 0;color:#777}
 <form method="post" action="/approve"><input type="hidden" name="brief" value="{{brief_json}}"><button class="secondary">Approve brief for video assembly</button></form></section>{% endif %}
 {% if approved %}<section class="panel"><h2>3 · Assemble your vertical video</h2><p>Upload three scene clips or still images. Use footage you own or have permission to use. Images are animated with a simple pan/zoom; clips are trimmed to fit the scene durations.</p>
 <form method="post" action="/render" enctype="multipart/form-data">
+<input type="hidden" name="voiceover_text" value="{{brief.voiceover}}">
 <div class="grid">{% for i in range(1,4) %}<div><label>Scene {{i}} media</label><input type="file" name="scene{{i}}" accept="video/mp4,video/quicktime,video/webm,image/png,image/jpeg" required></div>{% endfor %}</div>
 <label>Optional voiceover audio (MP3 or WAV)</label><input type="file" name="voice" accept="audio/mpeg,audio/wav,audio/x-wav">
 <label>Optional music bed (use only licensed audio)</label><input type="file" name="music" accept="audio/mpeg,audio/wav,audio/x-wav">
@@ -129,8 +130,17 @@ def render():
         voice=request.files.get("voice")
         music=request.files.get("music")
         final=work/"NEXORA_vertical_draft.mp4"
+        vp=None
         if voice and voice.filename:
-            vp=work/("voice"+Path(secure_filename(voice.filename)).suffix.lower()); voice.save(vp)
+            vp=work/("voice"+Path(secure_filename(voice.filename)).suffix.lower())
+            voice.save(vp)
+        else:
+            voice_text=request.form.get("voiceover_text","").strip()
+            if voice_text:
+                vp=work/"generated_voiceover.mp3"
+                # Free online neural TTS; uses a Nigerian English voice.
+                run(["edge-tts","--voice","en-NG-EzinneNeural","--text",voice_text,"--write-media",str(vp)])
+        if vp:
             cmd=["ffmpeg","-y","-i",str(joined),"-i",str(vp)]
             if music and music.filename:
                 mp=work/("music"+Path(secure_filename(music.filename)).suffix.lower()); music.save(mp)
@@ -139,7 +149,7 @@ def render():
                 cmd += ["-map","0:v","-map","1:a","-c:v","copy","-c:a","aac","-shortest",str(final)]
             run(cmd)
         else:
-            run(["ffmpeg","-y","-i",str(joined),"-c","copy","-an",str(final)])
+            raise RuntimeError("No voiceover text was supplied. Please regenerate the brief and try again.")
         return send_file(final, as_attachment=True, download_name="NEXORA_vertical_draft.mp4", mimetype="video/mp4")
     except Exception as e:
         flash(f"Render failed: {str(e)[:500]}")
