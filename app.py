@@ -44,7 +44,7 @@ a{color:var(--gold)}small{color:var(--muted)}footer{padding:24px 0;color:#777}
 <form method="post" action="/render" enctype="multipart/form-data">
 <input type="hidden" name="voiceover_text" value="{{brief.voiceover}}">
 <div class="grid">{% for i in range(1,4) %}<div><label>Scene {{i}} media</label><input type="file" name="scene{{i}}" accept="video/mp4,video/quicktime,video/webm,image/png,image/jpeg" required></div>{% endfor %}</div>
-<label>Optional voiceover audio (MP3 or WAV)</label><input type="file" name="voice" accept="audio/mpeg,audio/wav,audio/x-wav">
+<p class="muted">A Nigerian English AI voiceover and synchronized on-screen captions will be generated automatically.</p>
 <label>Optional music bed (use only licensed audio)</label><input type="file" name="music" accept="audio/mpeg,audio/wav,audio/x-wav">
 <button type="submit">Render 9:16 MP4</button></form></section>{% endif %}
 <footer>NEXORA Video Factory · Drafts only · Review every export before publishing.</footer></main></body></html>
@@ -140,9 +140,7 @@ def render():
             voice_text=request.form.get("voiceover_text","").strip()
             if voice_text:
                 vp=work/"generated_voiceover.mp3"
-                # Free online neural TTS; uses a Nigerian English voice.
-                run(["edge-tts","--voice","en-NG-EzinneNeural","--text",voice_text,"--write-media",str(vp)])
-        if vp:
+                # Voice and timed captions are generated together below.\n        if vp:
             # Ask Edge TTS for timed subtitle cues from the exact spoken script.
             vtt = work/"voiceover.vtt"
             if not (voice and voice.filename):
