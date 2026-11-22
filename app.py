@@ -31,7 +31,7 @@ a{color:var(--gold)}small{color:var(--muted)}footer{padding:24px 0;color:#777}
 <div class="brand">N E X O R A</div><h1>Video Factory</h1><p>Intelligence. Creativity. Possibility.</p>
 <div class="notice">Approval-first workflow. Nothing is published automatically. This free-tier build creates a production brief and can assemble a vertical MP4 from your own clips or images.</div>
 {% with messages=get_flashed_messages() %}{% if messages %}{% for m in messages %}<p class="notice">{{m}}</p>{% endfor %}{% endif %}{% endwith %}
-<section class="panel"><h2>1 · Create a video brief</h2><form method="post" action="/brief">
+<section class="panel"><h2>1 · Create a video brief</h2><form method="post" action="{{ url_for('brief') }}">
 <label>Video topic / hook</label><input name="topic" required value="{{topic or 'Stop doing everything manually'}}">
 <label>Product / call to action</label><input name="cta" value="NEXORA AI Productivity Starter Kit — ₦2,500">
 <label>Product URL</label><input name="url" value="https://selar.com/f7d2824682">
@@ -64,9 +64,17 @@ def make_brief(topic, cta, url, message):
 @app.get("/")
 def home():
     return render_template_string(PAGE, brief=None, approved=False, topic="")
-@app.post("/brief")
+@app.route("/brief", methods=["GET", "POST"])
 def brief():
-    b = make_brief(request.form.get("topic",""), request.form.get("cta",""), request.form.get("url",""), request.form.get("message",""))
+    # Accept GET as a safe fallback for browsers or stale pages that navigate
+    # to this endpoint instead of submitting the form with POST.
+    values = request.values
+    b = make_brief(
+        values.get("topic", "Stop doing everything manually"),
+        values.get("cta", "NEXORA AI Productivity Starter Kit — ₦2,500"),
+        values.get("url", "https://selar.com/f7d2824682"),
+        values.get("message", "Show how practical AI workflows can help people create content, organise tasks and work smarter.")
+    )
     return render_template_string(PAGE, brief=b, brief_json=json.dumps(b), approved=False, topic=b["hook"])
 @app.post("/approve")
 def approve():
